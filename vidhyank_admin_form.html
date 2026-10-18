@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vidhyank Admin — Add Questions</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;padding:18px}.wrap{max-width:760px;margin:auto}
+header{background:#173b68;color:white;border-radius:18px;padding:22px;margin-bottom:16px}
+h1{margin:0 0 6px;font-size:1.6rem}p{line-height:1.5}.muted{opacity:.85;font-size:.92rem}
+.card{background:white;border:1px solid #e1e7f0;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 5px 18px #15294a0b}
+label{display:block;font-weight:650;margin:13px 0 6px}
+input,select,textarea,button{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid #cbd5e1;background:white;color:#172033}
+textarea{min-height:90px;resize:vertical}button{border:0;background:#176b4d;color:white;font-weight:700;margin-top:14px;cursor:pointer}
+button.secondary{background:#e9eef5;color:#172033}button:disabled{opacity:.6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hidden{display:none!important}
+.note{font-size:.9rem;color:#4b5563}.status{padding:11px;border-radius:10px;margin-top:12px;white-space:pre-wrap}.ok{background:#e7f7ee;color:#14532d}.err{background:#fff0f0;color:#991b1b}
+@media(max-width:560px){.grid{grid-template-columns:1fr}body{padding:10px}}
+</style>
+</head>
+<body><main class="wrap">
+<header><h1>Vidhyank Admin</h1><p class="muted">Add NEET UG multiple-choice questions by subject and chapter.</p></header>
+<section class="card" id="setup">
+<h2>1. Connect to Supabase</h2>
+<p class="note">Use your project URL and <b>publishable</b> key only. Never enter a secret/service-role key here. These details are stored only in this browser on this device.</p>
+<label for="projectUrl">Project URL</label><input id="projectUrl" placeholder="https://your-project.supabase.co" autocomplete="url">
+<label for="publishableKey">Publishable key</label><input id="publishableKey" placeholder="sb_publishable_..." autocomplete="off">
+<button id="saveConfig">Connect</button>
+<div id="configStatus" aria-live="polite"></div>
+</section>
+<section class="card hidden" id="login">
+<h2>2. Admin login</h2>
+<label for="email">Email</label><input id="email" type="email" autocomplete="username" placeholder="Your admin email">
+<label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your admin password">
+<button id="signIn">Sign in</button><button id="signOut" class="secondary hidden">Sign out</button>
+<div id="loginStatus" aria-live="polite"></div>
+</section>
+<section class="card hidden" id="questionCard">
+<h2>3. Add a question</h2>
+<form id="questionForm">
+<div class="grid">
+<div><label for="subject">Subject</label><select id="subject" required><option value="">Choose subject</option><option>Biology</option><option>Physics</option><option>Chemistry</option></select></div>
+<div><label for="chapter">Chapter</label><input id="chapter" required placeholder="e.g. The Living World"></div>
+</div>
+<label for="question">Question</label><textarea id="question" required placeholder="Enter the full MCQ question"></textarea>
+<div class="grid">
+<div><label for="option_a">Option A</label><textarea id="option_a" required></textarea></div>
+<div><label for="option_b">Option B</label><textarea id="option_b" required></textarea></div>
+<div><label for="option_c">Option C</label><textarea id="option_c" required></textarea></div>
+<div><label for="option_d">Option D</label><textarea id="option_d" required></textarea></div>
+</div>
+<label for="correct_answer">Correct answer</label><select id="correct_answer" required><option value="">Choose correct option</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+<label for="explanation">Explanation</label><textarea id="explanation" required placeholder="Explain why the answer is correct"></textarea>
+<button id="submitQuestion" type="submit">Save question</button>
+<div id="formStatus" aria-live="polite"></div>
+</form>
+</section>
+<p class="note">Keep this admin page private. The publishable key is designed for browser use, but database security depends on correctly configured Row Level Security policies.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+let supabaseClient=null;
+const $=id=>document.getElementById(id);
+function status(id,msg,ok=false){const e=$(id);e.textContent=msg;e.className='status '+(ok?'ok':'err');}
+function configUi(connected){$('login').classList.toggle('hidden',!connected);}
+function authUi(signedIn){$('questionCard').classList.toggle('hidden',!signedIn);$('signOut').classList.toggle('hidden',!signedIn);$('signIn').classList.toggle('hidden',signedIn);}
+function loadSavedConfig(){
+ const url=localStorage.getItem('vidhyank_supabase_url')||'';
+ const key=localStorage.getItem('vidhyank_supabase_publishable_key')||'';
+ $('projectUrl').value=url;$('publishableKey').value=key;
+ if(url&&key)connect(url,key,false);
+}
+function connect(url,key,save=true){
+ if(!/^https:\/\/[a-zA-Z0-9-]+\.supabase\.co\/?$/.test(url.trim())){status('configStatus','Please enter the Project URL ending in .supabase.co');return;}
+ if(!key.trim()){status('configStatus','Please enter the publishable key.');return;}
+ if(!window.supabase){status('configStatus','Could not load Supabase library. Check your internet connection and reload.');return;}
+ supabaseClient=window.supabase.createClient(url.trim().replace(/\/$/,''),key.trim());
+ if(save){localStorage.setItem('vidhyank_supabase_url',url.trim().replace(/\/$/,''));localStorage.setItem('vidhyank_supabase_publishable_key',key.trim());}
+ configUi(true);status('configStatus','Connected to Supabase configuration. Sign in below.',true);
+ supabaseClient.auth.getSession().then(({data})=>authUi(!!data.session));
+ supabaseClient.auth.onAuthStateChange((_event,session)=>authUi(!!session));
+}
+$('saveConfig').addEventListener('click',()=>connect($('projectUrl').value,$('publishableKey').value,true));
+$('signIn').addEventListener('click',async()=>{
+ if(!supabaseClient)return;
+ const {error}=await supabaseClient.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+ if(error)status('loginStatus',error.message);else status('loginStatus','Signed in successfully.',true);
+});
+$('signOut').addEventListener('click',async()=>{await supabaseClient.auth.signOut();authUi(false);status('loginStatus','Signed out.',true);});
+$('questionForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!supabaseClient)return;
+ const {data:{session}}=await supabaseClient.auth.getSession();
+ if(!session){status('formStatus','Please sign in first.');return;}
+ const payload={subject:$('subject').value,chapter:$('chapter').value.trim(),question:$('question').value.trim(),option_a:$('option_a').value.trim(),option_b:$('option_b').value.trim(),option_c:$('option_c').value.trim(),option_d:$('option_d').value.trim(),correct_answer:$('correct_answer').value,explanation:$('explanation').value.trim()};
+ $('submitQuestion').disabled=true;
+ const {error}=await supabaseClient.from('questions').insert(payload);
+ $('submitQuestion').disabled=false;
+ if(error){status('formStatus','Could not save question: '+error.message);return;}
+ status('formStatus','Question saved successfully!',true);
+ $('questionForm').reset();
+});
+loadSavedConfig();
+</script></body></html>
