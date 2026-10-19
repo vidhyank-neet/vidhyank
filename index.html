@@ -1,120 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vidhyank — NEET UG Practice</title>
-<style>
-body{font-family:Arial,sans-serif;margin:0;background:#f3f6fb;color:#172033}
-header{background:#173b68;color:white;padding:25px 18px}
-header h1{margin:0;font-size:30px}
-main{max-width:850px;margin:auto;padding:18px}
-.card{background:white;padding:18px;margin:14px 0;border-radius:14px;border:1px solid #e0e6ef}
-button,select{padding:12px;border-radius:9px;border:1px solid #ccd5e1;font-size:16px}
-button{background:#176b4d;color:white;border:0;cursor:pointer}
-select{width:100%;background:white;margin:8px 0}
-label{font-weight:bold;display:block;margin-top:15px}
-.option{display:block;width:100%;text-align:left;background:#edf2f8;color:#172033;margin:8px 0}
-.option:disabled{opacity:1}
-.correct{background:#d8f5e4!important}
-.wrong{background:#ffe0e0!important}
-.muted{color:#667085;line-height:1.5}
-.hidden{display:none}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0; url=Vidhyank_Student_Portal_FINAL.html">
+  <title>Vidhyank — NEET UG Practice</title>
+  <script>
+    window.location.replace("Vidhyank_Student_Portal_FINAL.html");
+  </script>
 </head>
 <body>
-<header>
-<h1>Vidhyank</h1>
-<p>NEET UG · Learn chapter by chapter</p>
-</header>
-<main>
-<section class="card">
-<h2>Practice questions</h2>
-<p class="muted">Choose a subject and chapter to begin.</p>
-<label for="subject">Subject</label>
-<select id="subject"><option value="">Loading subjects...</option></select>
-<label for="chapter">Chapter</label>
-<select id="chapter" disabled><option value="">Choose a subject first</option></select>
-<p id="status" class="muted">Connecting to the question bank...</p>
-</section>
-<section id="questions"></section>
-</main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const PROJECT_URL = "https://nxngufreprpsjplqrpmj.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54bmd1ZnJlcHJwc2pwbHFycG1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjc2NDQsImV4cCI6MjEwNzkwMzY0NH0.lv68ZkaBdGVKJfR5NuRnvkF5B4CS4AQmgqLbBi1xMDE"
-const db = window.supabase.createClient(PROJECT_URL, SUPABASE_ANON_KEY);
-const subjectSelect = document.getElementById("subject");
-const chapterSelect = document.getElementById("chapter");
-const statusEl = document.getElementById("status");
-const questionsEl = document.getElementById("questions");
-let allQuestions = [];
-
-function setStatus(message){statusEl.textContent=message;}
-
-async function loadQuestions(){
- setStatus("Loading questions...");
- const {data,error}=await db.from("questions")
-   .select("id,subject,chapter,question,option_a,option_b,option_c,option_d,correct_answer,explanation")
-   .order("id");
- if(error){setStatus("Could not load questions: "+error.message);return;}
- allQuestions=data||[];
- const subjects=[...new Set(allQuestions.map(q=>q.subject).filter(Boolean))].sort();
- subjectSelect.innerHTML='<option value="">Choose subject</option>';
- subjects.forEach(s=>subjectSelect.add(new Option(s,s)));
- chapterSelect.innerHTML='<option value="">Choose a subject first</option>';
- chapterSelect.disabled=true;
- setStatus(allQuestions.length ? allQuestions.length+" questions available." : "No questions have been added yet.");
-}
-
-subjectSelect.addEventListener("change",()=>{
- const subject=subjectSelect.value;
- const chapters=[...new Set(allQuestions.filter(q=>q.subject===subject).map(q=>q.chapter).filter(Boolean))].sort();
- chapterSelect.innerHTML='<option value="">Choose chapter</option>';
- chapters.forEach(c=>chapterSelect.add(new Option(c,c)));
- chapterSelect.disabled=!subject;
- questionsEl.innerHTML="";
- setStatus(subject ? chapters.length+" chapters available." : "Choose a subject.");
-});
-
-chapterSelect.addEventListener("change",()=>{
- questionsEl.innerHTML="";
- const chosen=allQuestions.filter(q=>q.subject===subjectSelect.value && q.chapter===chapterSelect.value);
- if(!chosen.length){setStatus("No questions in this chapter yet.");return;}
- setStatus(chosen.length+" questions in this chapter.");
- chosen.forEach((q,index)=>{
-  const card=document.createElement("article");
-  card.className="card";
-  const title=document.createElement("h3");
-  title.textContent="Question "+(index+1);
-  const text=document.createElement("p");
-  text.textContent=q.question;
-  card.append(title,text);
-  const optionButtons=[];
-  [["A",q.option_a],["B",q.option_b],["C",q.option_c],["D",q.option_d]].forEach(([letter,value])=>{
-   const b=document.createElement("button");
-   b.className="option";
-   b.textContent=letter+". "+value;
-   b.addEventListener("click",()=>{
-    optionButtons.forEach(x=>x.disabled=true);
-    optionButtons.forEach(x=>{
-     if(x.dataset.letter===q.correct_answer)x.classList.add("correct");
-    });
-    if(letter!==q.correct_answer)b.classList.add("wrong");
-    const result=document.createElement("p");
-    result.innerHTML="<strong>"+(letter===q.correct_answer?"Correct!":"Incorrect")+"</strong>";
-    const explanation=document.createElement("p");
-    explanation.textContent="Explanation: "+q.explanation;
-    card.append(result,explanation);
-   });
-   b.dataset.letter=letter;
-   optionButtons.push(b);
-   card.appendChild(b);
-  });
-  questionsEl.appendChild(card);
- });
-});
-loadQuestions();
-</script>
+  <p>Opening Vidhyank Student Portal...</p>
+  <p><a href="Vidhyank_Student_Portal_FINAL.html">Tap here if the portal does not open.</a></p>
 </body>
 </html>
