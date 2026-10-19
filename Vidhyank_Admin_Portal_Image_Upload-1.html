@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vidhyank Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#102747;--blue:#2859a8;--bg:#f4f7fb;--ink:#182338;--muted:#68768b;--line:#dfe6ef;--white:#fff;--red:#b42318;--green:#16794b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--blue);color:#fff;font-weight:650}button.secondary{background:#e9eef7;color:var(--navy)}button.danger{background:#b42318}button:disabled{opacity:.5;cursor:not-allowed}.wrap{max-width:1200px;margin:auto;padding:18px}.top{background:var(--navy);color:white;padding:18px 0}.topinner{max-width:1200px;margin:auto;padding:0 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:21px;font-weight:800}.sub{font-size:13px;color:#c8d6e8}.panel,.stat{background:white;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 4px 18px #1b35590a}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stat strong{font-size:27px;display:block}.muted{color:var(--muted);font-size:13px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tabs button{background:#e9eef7;color:var(--navy)}.tabs button.active{background:var(--navy);color:white}.layout{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:grid;gap:5px;margin:10px 0}.field label{font-size:13px;font-weight:700;color:#34435b}.field input,.field select,.field textarea{width:100%;border:1px solid #cbd5e1;border-radius:9px;padding:10px;background:white;color:var(--ink)}textarea{min-height:92px;resize:vertical}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.notice{padding:12px 14px;border-radius:10px;margin:12px 0;background:#eaf2ff;color:#163b74}.notice.err{background:#fff0ef;color:var(--red)}.notice.ok{background:#e9f8ef;color:var(--green)}.hidden{display:none!important}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:620px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.tag{display:inline-block;padding:3px 8px;border-radius:99px;background:#edf2f8;font-size:12px}.empty{padding:22px;text-align:center;color:var(--muted)}.small{font-size:12px}.dangertext{color:var(--red)}.top button{background:#fff;color:var(--navy)}@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}.wrap{padding:12px}.panel{padding:14px}.topinner{align-items:flex-start;flex-direction:column}.brand{font-size:19px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="topinner"><div><div class="brand">Vidhyank <span style="font-weight:500">Admin</span></div><div class="sub">Question bank · student doubts · feedback</div></div><div class="row" style="flex:0 0 auto"><span id="who" class="sub"></span><button id="logout" class="hidden">Sign out</button></div></div></header>
+<main class="wrap">
+<section id="setup" class="panel">
+<h2>Connect admin portal</h2>
+<p class="muted">Enter your existing Supabase project URL and public anon key. These are browser-safe keys; never enter a service-role key here. For question images to appear for students, the question-images Storage bucket must be public; upload permission remains restricted by its policy.</p>
+<div class="field"><label>Supabase Project URL</label><input id="projectUrl" placeholder="https://YOURPROJECT.supabase.co"></div>
+<div class="field"><label>Supabase anon/public key</label><input id="anonKey" placeholder="sb_publishable_... or legacy anon key" autocomplete="off"></div>
+<button id="connect">Connect</button>
+<div id="setupMsg" class="muted" style="margin-top:10px">Connection settings are saved only in this browser's local storage.</div>
+</section>
+<section id="auth" class="panel hidden" style="max-width:520px;margin:18px auto">
+<h2>Admin sign in</h2><p class="muted">Sign in with the Supabase account whose user ID is authorized as the Vidhyank admin.</p>
+<div class="field"><label>Email</label><input id="email" type="email" autocomplete="username"></div>
+<div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password"></div>
+<button id="login">Sign in</button><div id="authMsg"></div>
+</section>
+<section id="app" class="hidden">
+<div id="notice"></div>
+<div class="grid">
+<div class="stat"><span class="muted">Questions</span><strong id="statQ">—</strong></div>
+<div class="stat"><span class="muted">Student attempts</span><strong id="statA">—</strong></div>
+<div class="stat"><span class="muted">Pending doubts</span><strong id="statD">—</strong></div>
+<div class="stat"><span class="muted">Feedback entries</span><strong id="statF">—</strong></div>
+</div>
+<nav class="tabs" id="tabs">
+<button class="active" data-tab="questions">Questions</button><button data-tab="bulk">Bulk import</button><button data-tab="doubts">Doubts</button><button data-tab="feedback">Feedback & ratings</button>
+</nav>
+<section id="tab-questions" class="panel">
+<div class="row"><h2 style="flex:2">Question bank</h2><button id="newQuestion">+ New question</button><button class="secondary" id="refreshQuestions">Refresh</button></div>
+<div class="field"><label>Search questions</label><input id="qSearch" placeholder="Search question, chapter, subject…"></div>
+<div id="questionForm" class="panel hidden" style="background:#f9fbfe">
+<h3 id="qFormTitle">New question</h3>
+<div class="layout">
+<div>
+<div class="field"><label>Subject</label><select id="qSubject"><option>Botany</option><option>Zoology</option><option>Physics</option><option>Chemistry</option></select></div>
+<div class="field"><label>Chapter</label><input id="qChapter" required></div>
+<div class="field"><label>Question text</label><textarea id="qText" required></textarea></div>
+<div class="field"><label>Question image URL (optional)</label><input id="qImage" placeholder="Uploaded image URL appears here"><input id="qImageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="muted" id="qImageStatus">Choose an image to upload directly from your phone (max 5 MB). The bucket must be public for student pages to display image URLs.</span></div>
+</div><div>
+<div class="field"><label>Option A</label><input id="optA" required><input id="optAImage" placeholder="Option A image URL (optional)"><input id="optAFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="muted" id="optAStatus"></span></div><div class="field"><label>Option B</label><input id="optB" required><input id="optBImage" placeholder="Option B image URL (optional)"><input id="optBFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="muted" id="optBStatus"></span></div><div class="field"><label>Option C</label><input id="optC" required><input id="optCImage" placeholder="Option C image URL (optional)"><input id="optCFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="muted" id="optCStatus"></span></div><div class="field"><label>Option D</label><input id="optD" required><input id="optDImage" placeholder="Option D image URL (optional)"><input id="optDFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="muted" id="optDStatus"></span></div>
+<div class="field"><label>Correct answer</label><select id="correct"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+</div></div>
+<div class="field"><label>Explanation</label><textarea id="explanation" required></textarea></div>
+<div class="field"><label>Explanation image URL (optional)</label><input id="explanationImage" placeholder="Uploaded image URL appears here"><input id="explanationImageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="muted" id="explanationImageStatus">Choose an image to upload directly from your phone (max 5 MB). The bucket must be public for student pages to display image URLs.</span></div>
+<div class="row"><button id="saveQuestion">Save question</button><button class="secondary" id="cancelQuestion">Cancel</button></div><div id="qMsg"></div>
+</div>
+<div class="tablewrap"><table><thead><tr><th>ID</th><th>Subject / chapter</th><th>Question</th><th>Answer</th><th>Actions</th></tr></thead><tbody id="questionsBody"><tr><td colspan="5" class="empty">Connect and sign in to load questions.</td></tr></tbody></table></div>
+</section>
+<section id="tab-bulk" class="panel hidden">
+<h2>Bulk import CSV</h2><p class="muted">Upload a UTF-8 CSV with headers: subject,chapter,question,option_a,option_b,option_c,option_d,correct_answer,explanation,question_image_url,option_a_image_url,option_b_image_url,option_c_image_url,option_d_image_url,explanation_image_url. Images should already be hosted at accessible URLs. Preview rows before importing.</p>
+<div class="field"><label>CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv"></div><button id="previewCsv" class="secondary">Preview CSV</button><button id="importCsv">Import previewed rows</button><div id="csvMsg"></div><div class="tablewrap" id="csvPreview"></div>
+</section>
+<section id="tab-doubts" class="panel hidden">
+<div class="row"><h2 style="flex:2">Student doubts</h2><button class="secondary" id="refreshDoubts">Refresh</button></div>
+<div class="tablewrap"><table><thead><tr><th>Submitted</th><th>Student / subject</th><th>Doubt</th><th>Status / reply</th><th>Action</th></tr></thead><tbody id="doubtsBody"><tr><td colspan="5" class="empty">Load doubts after sign-in.</td></tr></tbody></table></div>
+</section>
+<section id="tab-feedback" class="panel hidden">
+<div class="row"><h2 style="flex:2">Feedback & ratings</h2><button class="secondary" id="refreshFeedback">Refresh</button></div>
+<h3>Feedback</h3><div class="tablewrap"><table><thead><tr><th>Date</th><th>Type</th><th>Message</th><th>Student ID</th></tr></thead><tbody id="feedbackBody"></tbody></table></div>
+<h3>Ratings</h3><div class="tablewrap"><table><thead><tr><th>Date</th><th>Rating</th><th>Comment</th><th>Student ID</th></tr></thead><tbody id="ratingsBody"></tbody></table></div>
+</section>
+</section>
+</main>
+<script>
+(() => {
+const ADMIN_ID = '730205dd-57b0-4911-a4a4-afb91892c82e';
+const $ = id => document.getElementById(id);
+let sb=null, user=null, questions=[], editingId=null, csvRows=[];
+const msg=(el,text,kind='')=>{el.className='notice '+kind;el.textContent=text;};
+const safe=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const date=(s)=>s?new Date(s).toLocaleString():'—';
+function setView(){ $('setup').classList.toggle('hidden',!!sb); $('auth').classList.toggle('hidden',!sb||!!user); $('app').classList.toggle('hidden',!user); $('logout').classList.toggle('hidden',!user); $('who').textContent=user?(user.email||'Admin')+(user.id===ADMIN_ID?' · Admin verified':' · checking access'):''; }
+function requireAdmin(){if(!user||user.id!==ADMIN_ID){$('app').classList.add('hidden');msg($('authMsg'),'This account is not authorized as the configured Vidhyank admin. Sign in with the admin account.','err');return false;}return true;}
+async function connect(url,key){try{sb=window.supabase.createClient(url.replace(/\/$/,''),key);localStorage.setItem('vadmin_url',url);localStorage.setItem('vadmin_key',key);$('setupMsg').textContent='Connected. Sign in with your admin account.';setView();const {data}=await sb.auth.getSession();if(data.session){user=data.session.user;setView();if(requireAdmin())await loadAll();}}catch(e){msg($('setupMsg'),e.message,'err');}}
+$('connect').onclick=()=>{const u=$('projectUrl').value.trim(),k=$('anonKey').value.trim();if(!u||!k)return msg($('setupMsg'),'Enter both project URL and anon/public key.','err');connect(u,k);};
+$('login').onclick=async()=>{const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error)return msg($('authMsg'),error.message,'err');user=data.user;setView();if(requireAdmin())await loadAll();};
+$('logout').onclick=async()=>{await sb.auth.signOut();user=null;setView();};
+const savedUrl=localStorage.getItem('vadmin_url'),savedKey=localStorage.getItem('vadmin_key');if(savedUrl&&savedKey){$('projectUrl').value=savedUrl;$('anonKey').value=savedKey;connect(savedUrl,savedKey);}
+function notice(t,k=''){msg($('notice'),t,k);}
+async function loadAll(){if(!requireAdmin())return;await Promise.allSettled([loadQuestions(),loadStats(),loadDoubts(),loadFeedback()]);}
+async function loadQuestions(){const {data,error}=await sb.from('questions').select('*').order('id',{ascending:false}).limit(500);if(error){notice('Could not load questions: '+error.message,'err');return;}questions=data||[];renderQuestions();}
+function renderQuestions(){const term=$('qSearch').value.toLowerCase();const rows=questions.filter(q=>[q.subject,q.chapter,q.question].some(v=>String(v||'').toLowerCase().includes(term)));$('questionsBody').innerHTML=rows.map(q=>`<tr><td>${q.id}</td><td><b>${safe(q.subject)}</b><br><span class="muted">${safe(q.chapter)}</span></td><td>${safe(q.question).slice(0,220)}${String(q.question||'').length>220?'…':''}</td><td><span class="tag">${safe(q.correct_answer)}</span></td><td><div class="row"><button class="secondary" data-edit="${q.id}">Edit</button><button class="danger" data-deactivate="${q.id}">Deactivate</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No matching questions.</td></tr>';document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editQuestion(+b.dataset.edit));document.querySelectorAll('[data-deactivate]').forEach(b=>b.onclick=()=>deactivateQuestion(+b.dataset.deactivate));}
+$('qSearch').oninput=renderQuestions;$('refreshQuestions').onclick=loadQuestions;
+function openForm(q=null){['qImageFile','optAFile','optBFile','optCFile','optDFile','explanationImageFile'].forEach(id=>$(id).value='');['qImageStatus','optAStatus','optBStatus','optCStatus','optDStatus','explanationImageStatus'].forEach(id=>{if($(id))$(id).textContent='';});editingId=q?.id??null;$('qFormTitle').textContent=q?'Edit question #'+q.id:'New question';$('qSubject').value=q?.subject||'Botany';$('qChapter').value=q?.chapter||'';$('qText').value=q?.question||'';$('qImage').value=q?.question_image_url||'';$('optA').value=q?.option_a||'';$('optB').value=q?.option_b||'';$('optC').value=q?.option_c||'';$('optD').value=q?.option_d||'';$('optAImage').value=q?.option_a_image_url||'';$('optBImage').value=q?.option_b_image_url||'';$('optCImage').value=q?.option_c_image_url||'';$('optDImage').value=q?.option_d_image_url||'';$('correct').value=q?.correct_answer||'A';$('explanation').value=q?.explanation||'';$('explanationImage').value=q?.explanation_image_url||'';$('qMsg').textContent='';$('questionForm').classList.remove('hidden');$('questionForm').scrollIntoView({behavior:'smooth',block:'start'});}
+function editQuestion(id){const q=questions.find(x=>x.id===id);if(q)openForm(q);}
+$('newQuestion').onclick=()=>openForm();$('cancelQuestion').onclick=()=>{$('questionForm').classList.add('hidden');editingId=null;};
+async function uploadQuestionImage(file,inputId,statusId){
+ if(!requireAdmin())return;
+ const status=$(statusId); if(!file)return;
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type)){status.textContent='Use JPG, PNG, or WebP only.';return;}
+ if(file.size>5*1024*1024){status.textContent='Image is larger than 5 MB. Choose a smaller image.';return;}
+ status.textContent='Uploading image…';
+ try{
+  const clean=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=`${user.id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${clean}`;
+  const {error}=await sb.storage.from('question-images').upload(path,file,{upsert:false,contentType:file.type});
+  if(error)throw error;
+  const {data}=sb.storage.from('question-images').getPublicUrl(path);
+  $(inputId).value=data.publicUrl;
+  status.textContent='Upload complete ✓';
+ }catch(e){status.textContent='Upload failed: '+(e.message||String(e));}
+}
+[['qImageFile','qImage','qImageStatus'],['optAFile','optAImage','optAStatus'],['optBFile','optBImage','optBStatus'],['optCFile','optCImage','optCStatus'],['optDFile','optDImage','optDStatus'],['explanationImageFile','explanationImage','explanationImageStatus']].forEach(([fileId,inputId,statusId])=>{$(fileId).addEventListener('change',e=>uploadQuestionImage(e.target.files?.[0],inputId,statusId));});
+$('saveQuestion').onclick=async()=>{if(!requireAdmin())return;const row={subject:$('qSubject').value,chapter:$('qChapter').value.trim(),question:$('qText').value.trim(),question_image_url:$('qImage').value.trim()||null,option_a:$('optA').value.trim(),option_b:$('optB').value.trim(),option_c:$('optC').value.trim(),option_d:$('optD').value.trim(),option_a_image_url:$('optAImage').value.trim()||null,option_b_image_url:$('optBImage').value.trim()||null,option_c_image_url:$('optCImage').value.trim()||null,option_d_image_url:$('optDImage').value.trim()||null,correct_answer:$('correct').value,explanation:$('explanation').value.trim(),explanation_image_url:$('explanationImage').value.trim()||null};if(!row.chapter||!row.question||!row.option_a||!row.option_b||!row.option_c||!row.option_d||!row.explanation)return msg($('qMsg'),'Fill in chapter, question, all four options and explanation.','err');let res=editingId?await sb.from('questions').update(row).eq('id',editingId).select():await sb.from('questions').insert(row).select();if(res.error)return msg($('qMsg'),'Save failed: '+res.error.message,'err');msg($('qMsg'),editingId?'Question updated. Note: editing a question can affect interpretation of past attempts.':'Question added.','ok');await loadQuestions();await loadStats();};
+async function deactivateQuestion(id){if(!confirm('Deactivate this question? This implementation will not delete it. It will set an inactive flag if that column exists.'))return;const res=await sb.from('questions').update({is_active:false}).eq('id',id);if(res.error){alert('Could not deactivate. The existing questions table has no is_active column or policy for this operation. No question was deleted. '+res.error.message);return;}alert('Question deactivated.');await loadQuestions();}
+async function loadStats(){const [q,a,d,f]=await Promise.all([sb.from('questions').select('id',{count:'exact',head:true}),sb.from('student_question_attempts').select('id',{count:'exact',head:true}),sb.from('student_doubts').select('id',{count:'exact',head:true}).eq('status','pending'),sb.from('student_feedback').select('id',{count:'exact',head:true})]);$('statQ').textContent=q.count??'—';$('statA').textContent=a.count??'—';$('statD').textContent=d.count??'—';$('statF').textContent=f.count??'—';}
+async function loadDoubts(){const {data,error}=await sb.from('student_doubts').select('*').order('created_at',{ascending:false}).limit(200);if(error){$('doubtsBody').innerHTML=`<tr><td colspan="5" class="empty">${safe(error.message)}</td></tr>`;return;} $('doubtsBody').innerHTML=(data||[]).map(d=>`<tr><td>${safe(date(d.created_at))}</td><td>${safe(d.subject)}<br><span class="muted">${safe(d.chapter||'')}</span><br><span class="small">${safe(d.user_id)}</span></td><td><b>${safe(d.title)}</b><br>${safe(d.body)}${d.image_path?'<br><span class="muted">Image: '+safe(d.image_path)+'</span>':''}</td><td><span class="tag">${safe(d.status)}</span><br>${safe(d.reply||'No reply yet')}</td><td><button data-reply="${d.id}" class="secondary">Reply / update</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No doubts yet.</td></tr>';document.querySelectorAll('[data-reply]').forEach(b=>b.onclick=()=>replyDoubt(+(b.dataset.reply),data));}
+async function replyDoubt(id,data){const d=data.find(x=>x.id===id);const reply=prompt('Write your reply to: '+d.title,d.reply||'');if(reply===null)return;const status=reply.trim()?'answered':'pending';const {error}=await sb.from('student_doubts').update({reply:reply.trim()||null,status,replied_by:user.id,replied_at:reply.trim()?new Date().toISOString():null,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert('Could not save reply: '+error.message);return;}await loadDoubts();await loadStats();alert('Reply saved. The database trigger should create a student notification.');}
+async function loadFeedback(){const [f,r]=await Promise.all([sb.from('student_feedback').select('*').order('created_at',{ascending:false}).limit(200),sb.from('student_ratings').select('*').order('created_at',{ascending:false}).limit(200)]);$('feedbackBody').innerHTML=f.error?`<tr><td colspan="4">${safe(f.error.message)}</td></tr>`:(f.data||[]).map(x=>`<tr><td>${safe(date(x.created_at))}</td><td>${safe(x.feedback_type)}</td><td>${safe(x.message)}</td><td class="small">${safe(x.user_id)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No feedback yet.</td></tr>';$('ratingsBody').innerHTML=r.error?`<tr><td colspan="4">${safe(r.error.message)}</td></tr>`:(r.data||[]).map(x=>`<tr><td>${safe(date(x.created_at))}</td><td>${'★'.repeat(x.rating)}${'☆'.repeat(5-x.rating)}</td><td>${safe(x.comment||'')}</td><td class="small">${safe(x.user_id)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No ratings yet.</td></tr>';}
+$('refreshDoubts').onclick=loadDoubts;$('refreshFeedback').onclick=loadFeedback;
+$('tabs').onclick=e=>{const b=e.target.closest('button[data-tab]');if(!b)return;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));['questions','bulk','doubts','feedback'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==b.dataset.tab));if(b.dataset.tab==='doubts')loadDoubts();if(b.dataset.tab==='feedback')loadFeedback();};
+function parseCSV(text){const rows=[];let row=[],cell='',q=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(c==='"'&&q&&n==='"'){cell+='"';i++;}else if(c==='"'){q=!q;}else if(c===','&&!q){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&n==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell='';}else cell+=c;}row.push(cell);if(row.some(v=>v.trim()))rows.push(row);if(!rows.length)return[];const headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]||'').trim()])));}
+$('previewCsv').onclick=async()=>{const file=$('csvFile').files[0];if(!file)return msg($('csvMsg'),'Choose a CSV file first.','err');try{csvRows=parseCSV(await file.text());const required=['subject','chapter','question','option_a','option_b','option_c','option_d','correct_answer','explanation'];const bad=csvRows.findIndex(r=>required.some(k=>!r[k])||!['A','B','C','D'].includes((r.correct_answer||'').toUpperCase()));if(bad>=0){msg($('csvMsg'),`CSV preview found a missing field or invalid correct_answer near data row ${bad+1}. Required columns: ${required.join(', ')}.`,'err');return;}msg($('csvMsg'),`${csvRows.length} rows validated. Review preview before importing.`,'ok');$('csvPreview').innerHTML='<table><thead><tr><th>Subject</th><th>Chapter</th><th>Question</th><th>Answer</th></tr></thead><tbody>'+csvRows.slice(0,15).map(r=>`<tr><td>${safe(r.subject)}</td><td>${safe(r.chapter)}</td><td>${safe(r.question)}</td><td>${safe(r.correct_answer)}</td></tr>`).join('')+'</tbody></table>'+(csvRows.length>15?`<p class="muted">Showing first 15 of ${csvRows.length} rows.</p>`:'');}catch(e){msg($('csvMsg'),'Could not parse CSV: '+e.message,'err');}};
+$('importCsv').onclick=async()=>{if(!requireAdmin())return;if(!csvRows.length)return msg($('csvMsg'),'Preview and validate a CSV first.','err');if(!confirm(`Import ${csvRows.length} questions? This publishes them into the question bank.`))return;const keys=['subject','chapter','question','option_a','option_b','option_c','option_d','correct_answer','explanation','question_image_url','option_a_image_url','option_b_image_url','option_c_image_url','option_d_image_url','explanation_image_url'];const rows=csvRows.map(r=>Object.fromEntries(keys.filter(k=>r[k]!==undefined).map(k=>[k,['correct_answer'].includes(k)?r[k].toUpperCase():r[k]||null])));for(let i=0;i<rows.length;i+=50){const {error}=await sb.from('questions').insert(rows.slice(i,i+50));if(error)return msg($('csvMsg'),`Import stopped at batch ${Math.floor(i/50)+1}: ${error.message}. Earlier batches, if any, may already be imported.`,'err');}msg($('csvMsg'),`Successfully imported ${rows.length} questions.`,'ok');csvRows=[];await loadQuestions();await loadStats();};
+sb?.auth?.onAuthStateChange?.((_event,session)=>{user=session?.user||null;setView();if(user&&user.id===ADMIN_ID)loadAll();});
+setView();
+})();
+</script>
+</body>
+</html>
